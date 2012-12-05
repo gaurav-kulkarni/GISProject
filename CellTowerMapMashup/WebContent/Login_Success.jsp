@@ -1,0 +1,362 @@
+<%@page import="java.util.Date"%>
+<%@ taglib prefix="s" uri="/struts-tags" %>
+<%@ page language="java" contentType="text/html; charset=ISO-8859-1"
+    pageEncoding="ISO-8859-1"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" /> 
+<meta http-equiv="content-type" content="text/html; charset=UTF-8"/> 
+
+<title>NZ Cell-Tower Map Mashup</title> 
+
+<style>
+  body { font-family: Arial, sans-serif; }
+  #map_canvas { height: 100%;}
+  #map_canvas { height: 650px;}
+</style>
+
+<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script> 
+<script src="http://maps.googleapis.com/maps/api/js?libraries=geometry&sensor=false"></script>
+<script type="text/javascript"> 
+
+var map;
+
+var layer;
+var tableid = 1355049;
+var tableidkey = 'easting';
+
+function HomeControl(controlDiv, buttonTip, buttonText,map) {
+  // Set CSS styles for the DIV containing the control
+  // Setting padding to 3 px will offset the control
+  // from the edge of the map
+  controlDiv.style.padding = '3px';
+
+  // Set CSS for the control border
+  var controlUI = document.createElement('DIV');
+  controlUI.style.backgroundColor = 'white';
+  controlUI.style.borderStyle = 'solid';
+  controlUI.style.borderWidth = '2px';
+  controlUI.style.cursor = 'pointer';
+  controlUI.style.textAlign = 'center';
+  controlUI.title = buttonTip;
+  controlDiv.appendChild(controlUI);
+
+  // Set CSS for the control interior
+  var controlText = document.createElement('DIV');
+  controlText.style.fontFamily = 'Arial,sans-serif';
+  controlText.style.fontSize = '12px';
+  controlText.style.paddingLeft = '4px';
+  controlText.style.paddingRight = '4px';
+  controlText.innerHTML = buttonText;
+  controlUI.appendChild(controlText);
+  
+  // The following section creates listeners for each of the custom controls that is assigned based on the button text 
+  // That was passed to the constructor for the buttons
+  
+  if (buttonText == 'All')
+    google.maps.event.addDomListener(controlUI, 'click', function() {
+    updateMapAll()
+  });
+
+  else
+
+  if (buttonText == 'Telecom')
+      google.maps.event.addDomListener(controlUI, 'click', function() {
+    toggle_telecom()
+  })  ;
+  
+  else 
+  	
+  if (buttonText == 'Vodafone')
+      google.maps.event.addDomListener(controlUI, 'click', function() {
+    toggle_vodafone()
+  })  ;
+
+  else 
+  	
+  if (buttonText == 'Two Degrees')
+      google.maps.event.addDomListener(controlUI, 'click', function() {
+    toggle_twodeg()
+  })  ;
+
+  else 
+  	
+  if (buttonText == 'Woosh')
+      google.maps.event.addDomListener(controlUI, 'click', function() {
+    toggle_woosh()
+  })  ;
+
+  if (buttonText == 'Only Telecom')
+      google.maps.event.addDomListener(controlUI, 'click', function() {
+    show_vodafone = '';
+    show_telecom = 't_blue';
+    show_twodeg = '';
+    show_woosh = '';
+    toggleMap();
+  })  ;
+  
+  else 
+  	
+  if (buttonText == 'Only Vodafone')
+      google.maps.event.addDomListener(controlUI, 'click', function() {
+    show_vodafone = 'v';
+    show_telecom = '';
+    show_twodeg = '';
+    show_woosh = '';
+    toggleMap();
+  })  ;
+
+  else 
+  	
+  if (buttonText == 'Only Two Degrees')
+      google.maps.event.addDomListener(controlUI, 'click', function() {
+    show_vodafone = '';
+    show_telecom = '';
+    show_twodeg = '2_blue';
+    show_woosh = '';
+    toggleMap();
+  })  ;
+
+  else 
+  	
+  if (buttonText == 'Only Woosh')
+      google.maps.event.addDomListener(controlUI, 'click', function() {
+    show_vodafone = '';
+    show_telecom = '';
+    show_twodeg = '';
+    show_woosh = 'w';
+    toggleMap();
+  })  ;
+  
+}
+
+function initialize() {
+  map = new google.maps.Map(document.getElementById('map_canvas'), {
+    center: new google.maps.LatLng(-41, 174),
+    zoom: 5,
+    mapTypeId: google.maps.MapTypeId.ROADMAP
+  });
+
+  layer = new google.maps.FusionTablesLayer({
+  query: {
+    select: 'Location',
+    from: '1mZ53Z70NsChnBMm-qEYmSDOvLXgrreLTkQUvvg'
+  },
+  });
+
+
+  updateMapAll();
+
+/*
+  layer.setOptions({styles: [{
+    where: "type = 'T'",
+    markerOptions: {
+      iconName: "t_blue" }
+    },{
+    where: "type = 'V'",
+    markerOptions: {
+      iconName: "v" }
+    },{
+    where: "type = '2'",
+    markerOptions: {
+      iconName: "2_blue" }
+    },{
+    where: "type = 'W'",
+    markerOptions: {
+      iconName: "w" }
+    },{
+    where: "type = 'M'",
+    markerOptions: {
+      iconName: "m" }
+    }]
+  });
+*/
+
+  layer.setMap(map);
+
+  var homeControlDiv = document.createElement('DIV');
+  var homeControl = new HomeControl(homeControlDiv, 'Select All', 'All', map);
+  homeControlDiv.index = 1;
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(homeControlDiv);
+  
+  var homeControlDiv1 = document.createElement('DIV');
+  var homeControl1 = new HomeControl(homeControlDiv1, 'Toggle Telecom','Telecom', map);
+  homeControlDiv1.index = 1;
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(homeControlDiv1);
+  
+  var homeControlDiv2 = document.createElement('DIV');
+  var homeControl2 = new HomeControl(homeControlDiv2, 'Toggle Vodafone','Vodafone', map);
+  homeControlDiv2.index = 1;
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(homeControlDiv2);
+
+  var homeControlDiv3 = document.createElement('DIV');
+  var homeControl3 = new HomeControl(homeControlDiv3, 'Toggle Two Degrees','Two Degrees', map);
+  homeControlDiv3.index = 1;
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(homeControlDiv3);
+  
+  var homeControlDiv4 = document.createElement('DIV');
+  var homeControl4 = new HomeControl(homeControlDiv4, 'Toggle Woosh','Woosh', map);
+  homeControlDiv4.index = 1;
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(homeControlDiv4);
+
+  var homeControlDiv5 = document.createElement('DIV');
+  var homeControl5 = new HomeControl(homeControlDiv5, 'Only Telecom','Only Telecom', map);
+  homeControlDiv5.index = 1;
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(homeControlDiv5);
+  
+  var homeControlDiv6 = document.createElement('DIV');
+  var homeControl6 = new HomeControl(homeControlDiv6, 'Only Vodafone','Only Vodafone', map);
+  homeControlDiv6.index = 1;
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(homeControlDiv6);
+
+  var homeControlDiv7 = document.createElement('DIV');
+  var homeControl7 = new HomeControl(homeControlDiv7, 'Only Two Degrees','Only Two Degrees', map);
+  homeControlDiv7.index = 1;
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(homeControlDiv7);
+  
+  var homeControlDiv8 = document.createElement('DIV');
+  var homeControl8 = new HomeControl(homeControlDiv8, 'Only Woosh','Only Woosh', map);
+  homeControlDiv8.index = 1;
+  map.controls[google.maps.ControlPosition.TOP_LEFT].push(homeControlDiv8);
+
+  //add a click listener to the layer
+  google.maps.event.addListener(layer, 'click', function(e) {
+  
+    //update the content of the InfoWindow
+    e.infoWindowHtml = "<b>Location Name:</b> " + e.row['Location Name'].value + "<br/>" 
+    e.infoWindowHtml += "Location Number: " + e.row['Location ID'].value + "<br/>";
+
+    //add content to the window
+    if (e.row['cdmahasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Telecom CDMA LicID: " + e.row['cdmalicid'].value + "<br/>";
+    }; 
+    if (e.row['xt850hasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Telecom XT 850 LicID: " + e.row['xt850licid'].value + "<br/>";
+    }; 
+    if (e.row['xt2100hasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Telecom XT 2100 LicID: " + e.row['xt2100licid'].value + "<br/>";
+    }; 
+    if (e.row['voda900hasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Vodafone 900 LicID: " + e.row['voda900licid'].value + "<br/>";
+    };
+    if (e.row['voda1800hasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Vodafone 1800 LicID: " + e.row['voda1800licid'].value + "<br/>";
+    };
+    if (e.row['voda2100hasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Vodafone 2100 LicID: " + e.row['voda2100licid'].value + "<br/>";
+    };
+    if (e.row['twodeg900hasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Two Degrees 900 LicID: " + e.row['twodeg900licid'].value + "<br/>";
+    };
+    if (e.row['twodeg1800hasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Two Degrees 1800 LicID: " + e.row['twodeg1800licid'].value + "<br/>";
+    };
+    if (e.row['twodeg2100hasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Two Degrees 2100 LicID: " + e.row['twodeg2100licid'].value + "<br/>";
+    };
+    if (e.row['wooshhasval'].value == 'TRUE') {
+      e.infoWindowHtml += "Woosh 2067.5 LicID: " + e.row['wooshlicid'].value + "<br/>";
+    };
+  });
+
+
+}
+
+function toggle_telecom() {
+  if (show_telecom == 't_blue')
+  {
+    show_telecom = '';
+    toggleMap();
+  }
+   else
+  {
+    show_telecom = 't_blue';
+    toggleMap();
+  }
+}
+
+function toggle_vodafone() {
+  if (show_vodafone == 'v')
+  {
+    show_vodafone = '';
+    toggleMap();
+  }
+   else
+  {
+    show_vodafone = 'v';
+    toggleMap();
+  }
+}
+
+function toggle_twodeg() {
+  if (show_twodeg == '2_blue')
+  {
+    show_twodeg = '';
+    toggleMap();
+  }
+   else
+  {
+    show_twodeg = '2_blue';
+    toggleMap();
+  }
+}
+
+function toggle_woosh() {
+  if (show_woosh == 'w')
+  {
+    show_woosh = '';
+    toggleMap();
+  }
+   else
+  {
+    show_woosh = 'w';
+    toggleMap();
+  }
+}
+	
+function toggleMap() {
+      layer.setOptions({query: {
+        select: tableidkey,
+        from: tableid,
+        where: "type IN ('m', '" + show_telecom + "', '" + show_vodafone + "', '" + show_twodeg + "', '" + show_woosh + "')"
+//        where: "T = '" + show_t + "'"
+//        where: "V = '" + show_v + "'"
+      }});
+}
+
+function updateMapAll(querytype) {
+	show_telecom = 't_blue';
+	show_vodafone = 'v';
+	show_twodeg = '2_blue';
+	show_woosh = 'w';
+  toggleMap();
+};
+
+function updateMapAllOld(querytype) {
+  layer.setOptions({query: {
+            select: tableidkey,
+            from: tableid
+          }});
+};
+
+
+function updateMap(querytype) {
+  layer.setOptions({query: {
+            select: tableidkey,
+            from: tableid,
+            where: querytype + " = 'TRUE'"
+          }});
+};
+
+</script>
+</head>
+<body onload="initialize();">
+Welcome,<s:property value="userId"/> you have logged in. <br />
+<b>Session Time: </b><%=new Date(session.getLastAccessedTime())%>
+<br/>
+<a href="<%= request.getContextPath() %>/logout.action">Logout</a>
+
+<div id="map_canvas"></div>
+</body>
+</html>
